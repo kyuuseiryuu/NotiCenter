@@ -38,9 +38,13 @@ test("server-renders the NotiCenter application shell", async () => {
 });
 
 test("keeps product metadata and client capabilities in source", async () => {
-  const [page, layout, packageJson] = await Promise.all([
+  const [page, layout, profile, admin, adminSession, oauthStart, packageJson] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/profile/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/admin/session/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/oauth/[slug]/start/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
@@ -57,6 +61,13 @@ test("keeps product metadata and client capabilities in source", async () => {
   assert.match(page, /topic\.owner_id/);
   assert.match(page, /shortUserId/);
   assert.match(page, /\/t\/\$\{topic\.slug\}/);
+  assert.match(page, /href="\/profile"/);
+  assert.match(profile, /连接账户/);
+  assert.match(profile, /\/api\/oauth\/providers/);
+  assert.match(admin, /验证 Admin Token/);
+  assert.match(admin, /\/api\/admin\/oauth/);
+  assert.match(adminSession, /adminSessionCookie/);
+  assert.match(oauthStart, /code_challenge_method/);
   assert.doesNotMatch(page, /_sites-preview|SkeletonPreview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });

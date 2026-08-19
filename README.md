@@ -21,6 +21,8 @@ NotiCenter 是一个运行在 Cloudflare 上的通知主题订阅与消息分发
 - 记录消息及每个订阅客户端的投递结果
 - 删除主题时自动取消其全部关联订阅
 - 提供无需额外鉴权的 Bark 兼容接入地址
+- 提供个人中心，可将 GitHub、Logto 或通用 OIDC 社交身份绑定到当前账号
+- 提供受 Admin Token 保护的 `/admin` OAuth 配置入口
 
 ## 技术栈
 
@@ -80,6 +82,7 @@ npx wrangler d1 execute noticenter-db --remote --file drizzle/0000_past_centenni
 npx wrangler d1 execute noticenter-db --remote --file drizzle/0001_supreme_purifiers.sql
 npx wrangler d1 execute noticenter-db --remote --file drizzle/0002_jazzy_the_hunter.sql
 npx wrangler d1 execute noticenter-db --remote --file drizzle/0003_colossal_santa_claus.sql
+npx wrangler d1 execute noticenter-db --remote --file drizzle/0004_shocking_warhawk.sql
 ```
 
 ### 2. 配置 Secrets
@@ -94,6 +97,18 @@ npx wrangler secret put ENDPOINT_ENCRYPTION_KEY
 
 ```bash
 npx wrangler secret put SESSION_PEPPER
+```
+
+管理页面 `/admin` 使用独立的 Admin Token 建立 8 小时管理会话。该值也必须作为 Secret 配置：
+
+```bash
+npx wrangler secret put ADMIN_TOKEN
+```
+
+进入 `/admin` 后可添加 GitHub、Logto 或通用 OIDC 配置。OAuth 服务端登记的回调地址为：
+
+```text
+https://your-domain.example/api/oauth/{配置-slug}/callback
 ```
 
 不要把这些值写入源码、README、`.env` 示例或 Git 历史。更换 `ENDPOINT_ENCRYPTION_KEY` 后，数据库内已有终端地址将无法解密。
@@ -112,6 +127,7 @@ npx wrangler deploy --config dist/server/wrangler.json --name noticenter
 - `SITE_URL`：生产站点的完整公开地址，用于生成分享元数据
 - `ENDPOINT_ENCRYPTION_KEY`：必需，终端地址加密密钥
 - `SESSION_PEPPER`：推荐，会话令牌哈希附加密钥
+- `ADMIN_TOKEN`：必需，用于保护 `/admin` 与 OAuth 配置接口
 
 ## 数据安全
 

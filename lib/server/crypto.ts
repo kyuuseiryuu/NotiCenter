@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 
-type RuntimeEnv = { DB: D1Database; ENDPOINT_ENCRYPTION_KEY?: string; SESSION_PEPPER?: string; SITE_URL?: string };
+type RuntimeEnv = { DB: D1Database; ENDPOINT_ENCRYPTION_KEY?: string; SESSION_PEPPER?: string; SITE_URL?: string; ADMIN_TOKEN?: string };
 export const runtime = env as unknown as RuntimeEnv;
 
 const encoder = new TextEncoder();
