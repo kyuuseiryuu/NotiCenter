@@ -55,6 +55,8 @@ test("keeps product metadata and client capabilities in source", async () => {
   assert.match(page, /method: "PATCH"/);
   assert.match(page, /ID · \{item\.id\}/);
   assert.match(page, /topic\.owner_id/);
+  assert.match(page, /shortUserId/);
+  assert.match(page, /\/t\/\$\{topic\.slug\}/);
   assert.doesNotMatch(page, /_sites-preview|SkeletonPreview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });
