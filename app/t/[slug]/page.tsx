@@ -35,7 +35,7 @@ export default async function TopicPage({ params }: Props) {
         <div><dt>订阅者</dt><dd>{topic.subscriber_count.toLocaleString()}</dd></div>
         <div><dt>状态</dt><dd>{topic.status === "active" ? "运行中" : topic.status}</dd></div>
       </dl>
-      <div className="detail-actions"><a className="primary-button detail-action" href="/">{topic.owned ? "管理这个主题" : topic.subscribed ? "管理接收客户端" : "选择客户端订阅"}</a></div>
+      <div className="detail-actions"><a className="primary-button detail-action" href={`/?subscribe=${encodeURIComponent(topic.slug)}`}>{topic.viewer_authenticated ? topic.subscribed ? "管理接收客户端" : "选择客户端订阅" : "登录后订阅"}</a>{topic.owned && <a className="detail-secondary-action" href="/?view=topics">管理主题</a>}</div>
       {topic.visibility === "private" && <p className="private-detail-note">此页面仅对发布者和已订阅用户开放。</p>}
     </section>
   </main>;

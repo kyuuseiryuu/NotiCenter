@@ -13,6 +13,7 @@ export type TopicDetail = {
   subscriber_count: number;
   subscribed: number;
   owned: number;
+  viewer_authenticated: boolean;
 };
 
 export function shortUserId(userId: string) {
@@ -34,5 +35,5 @@ export async function getTopicBySlug(slug: string): Promise<TopicDetail | null> 
 
   if (!row) return null;
   if (row.visibility === "private" && !Number(row.owned) && !Number(row.subscribed)) return null;
-  return { ...row, subscriber_count: Number(row.subscriber_count), subscribed: Number(row.subscribed), owned: Number(row.owned) };
+  return { ...row, subscriber_count: Number(row.subscriber_count), subscribed: Number(row.subscribed), owned: Number(row.owned), viewer_authenticated: Boolean(user) };
 }

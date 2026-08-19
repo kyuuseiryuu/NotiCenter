@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 type User = { id: string; displayName: string; provider: string; endpointLabel: string; isAdmin: boolean };
 type Topic = { id: string; slug: string; name: string; description: string; visibility: "public" | "unlisted" | "private"; owner_id: string; subscriber_count: number; subscribed: number; owned: number; status: string };
@@ -74,13 +74,22 @@ export default function Home() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [editingEndpointId, setEditingEndpointId] = useState<string | null>(null);
   const [editingEndpointLabel, setEditingEndpointLabel] = useState("");
+  const subscribeLinkHandled = useRef(false);
 
   const load = async () => {
     const [{ user }, { topics }] = await Promise.all([api<{ user: User | null }>("/api/me"), api<{ topics: Topic[] }>("/api/topics")]);
     setUser(user); setTopics(topics);
     if (user) { const [endpointResult, subscriptionResult, deliveryResult] = await Promise.all([api<{ endpoints: Endpoint[] }>("/api/endpoints"), api<{ subscriptions: Subscription[] }>("/api/subscriptions/list"), api<{ deliveries: Delivery[] }>("/api/deliveries")]); setEndpoints(endpointResult.endpoints); setSubscriptions(subscriptionResult.subscriptions); setDeliveries(deliveryResult.deliveries); }
   };
-  useEffect(() => { setPublisherId(new URLSearchParams(window.location.search).get("publisher") ?? ""); load().catch(() => setUser(null)); }, []);
+  useEffect(() => { const params = new URLSearchParams(window.location.search); setPublisherId(params.get("publisher") ?? ""); if (params.get("view") === "topics") setView("topics"); load().catch(() => setUser(null)); }, []);
+  useEffect(() => {
+    if (subscribeLinkHandled.current || !user || topics.length === 0) return;
+    const params = new URLSearchParams(window.location.search); const slug = params.get("subscribe");
+    if (!slug) return;
+    const topic = topics.find((item) => item.slug === slug); if (!topic) return;
+    subscribeLinkHandled.current = true; setView("discover"); setSubscribeTopic(topic); setNotice("");
+    params.delete("subscribe"); const queryString = params.toString(); window.history.replaceState(null, "", `${window.location.pathname}${queryString ? `?${queryString}` : ""}`);
+  }, [topics, user]);
 
   async function requestCode(event: FormEvent) {
     event.preventDefault(); setBusy(true); setNotice("");
