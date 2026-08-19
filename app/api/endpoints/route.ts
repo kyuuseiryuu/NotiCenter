@@ -30,9 +30,13 @@ export async function POST(request: Request) {
     const adapter = getPushAdapter(input.provider);
     const endpoint = adapter.normalizeEndpoint(input.endpoint);
     const config = cleanConfig(input.provider, input.config);
+    const hash = await endpointHash(input.provider, endpoint);
+    const existing = await runtime.DB.prepare("SELECT user_id FROM push_endpoints WHERE provider = ? AND endpoint_hash = ? LIMIT 1")
+      .bind(input.provider, hash).first<{ user_id: string }>();
+    if (existing?.user_id === user.id) return json({ error: "这个客户端已经在当前账号中" }, 409);
+    if (existing) return json({ error: "这个客户端属于另一个账号，请使用下方的账号关联功能并完成验证码确认" }, 409);
     const test = await adapter.send(endpoint, { title: "NotiCenter 客户端测试", body: "连接成功。这个客户端现在可以接收主题通知。", group: "NotiCenter" }, config);
     if (!test.ok) return json({ error: `测试推送失败（${test.status}）${test.detail ? `：${test.detail}` : ""}` }, 502);
-    const hash = await endpointHash(input.provider, endpoint);
     const endpointId = id("ep");
     await runtime.DB.prepare(`INSERT INTO push_endpoints (id, user_id, provider, endpoint_ciphertext, endpoint_hash, label, config_json, verified_at, last_tested_at, is_default, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch(), 0, unixepoch(), unixepoch())`)

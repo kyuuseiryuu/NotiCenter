@@ -22,6 +22,13 @@
       "when": 1787106533783,
       "tag": "0002_jazzy_the_hunter",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787114432853,
+      "tag": "0003_colossal_santa_claus",
+      "breakpoints": true
     }
   ]
 }

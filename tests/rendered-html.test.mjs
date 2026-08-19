@@ -50,6 +50,8 @@ test("keeps product metadata and client capabilities in source", async () => {
   assert.match(page, /function ManualSendFields/);
   assert.match(page, /\/api\/subscriptions/);
   assert.match(page, /\/api\/endpoints\/test/);
+  assert.match(page, /\/api\/account-links/);
+  assert.match(page, /确认并合并两个账号/);
   assert.doesNotMatch(page, /_sites-preview|SkeletonPreview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });

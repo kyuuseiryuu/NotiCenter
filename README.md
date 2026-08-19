@@ -9,6 +9,7 @@ NotiCenter 是一个运行在 Cloudflare 上的通知主题订阅与消息分发
 - 订阅自己或其他用户发布的主题
 - 为每个订阅选择一个或多个接收客户端
 - 添加多个 Bark、NTFY 与 Webhook 客户端
+- 通过目标客户端验证码合并已有账号，关联后可用任一设备登录并统一管理全部客户端
 - 从完整 Bark 示例 URL 中自动识别设备 Key
 - 提供客户端推送测试和订阅测试
 - 为 NTFY 与 Webhook 配置请求字段映射
@@ -75,6 +76,7 @@ npx wrangler d1 create noticenter-db
 npx wrangler d1 execute noticenter-db --remote --file drizzle/0000_past_centennial.sql
 npx wrangler d1 execute noticenter-db --remote --file drizzle/0001_supreme_purifiers.sql
 npx wrangler d1 execute noticenter-db --remote --file drizzle/0002_jazzy_the_hunter.sql
+npx wrangler d1 execute noticenter-db --remote --file drizzle/0003_colossal_santa_claus.sql
 ```
 
 ### 2. 配置 Secrets
