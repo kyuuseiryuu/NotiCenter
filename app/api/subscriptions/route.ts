@@ -1,5 +1,6 @@
 import { errorResponse, json, requireUser } from "../../../lib/server/auth";
 import { id, runtime } from "../../../lib/server/crypto";
+import { isEndpointEligible } from "../../../lib/server/plans";
 
 export async function POST(request: Request) {
   try {
@@ -11,6 +12,10 @@ export async function POST(request: Request) {
     const endpointId = input.endpointId ?? user.endpointId;
     const endpoint = await runtime.DB.prepare("SELECT id FROM push_endpoints WHERE id = ? AND user_id = ? AND verified_at IS NOT NULL LIMIT 1").bind(endpointId, user.id).first();
     if (!endpoint) return json({ error: "请选择有效的通知客户端" }, 400);
+    if (input.subscribe !== false) {
+      const eligibility = await isEndpointEligible(user.id, endpointId);
+      if (!eligibility.eligible) return json({ error: `此设备已超出${eligibility.entitlement.planName}的 ${eligibility.entitlement.deviceLimit} 台额度，暂时不能新增订阅` }, 403);
+    }
     if (input.subscribe === false) {
       await runtime.DB.prepare("UPDATE subscriptions SET status = 'unsubscribed', updated_at = unixepoch() WHERE topic_id = ? AND user_id = ? AND endpoint_id = ?").bind(input.topicId, user.id, endpointId).run();
     } else {

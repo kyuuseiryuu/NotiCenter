@@ -18,3 +18,15 @@ export async function getEntitlement(userId: string): Promise<Entitlement> {
   if (!row) return { planId: null, planName: "普通用户", deviceLimit: FREE_DEVICE_LIMIT, expiresAt: null, source: "free_default" };
   return { planId: String(row.plan_id), planName: String(row.plan_name), deviceLimit: Number(row.device_limit), expiresAt: Number(row.expires_at), source: String(row.source) };
 }
+
+export async function getEligibleEndpointIds(userId: string) {
+  const entitlement = await getEntitlement(userId);
+  const rows = await runtime.DB.prepare("SELECT id FROM push_endpoints WHERE user_id = ? ORDER BY created_at ASC, id ASC LIMIT ?")
+    .bind(userId, entitlement.deviceLimit).all<{ id: string }>();
+  return { entitlement, ids: new Set(rows.results.map((row: { id: string }) => row.id)) };
+}
+
+export async function isEndpointEligible(userId: string, endpointId: string) {
+  const { entitlement, ids } = await getEligibleEndpointIds(userId);
+  return { eligible: ids.has(endpointId), entitlement };
+}

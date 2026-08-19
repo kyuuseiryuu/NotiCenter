@@ -41,8 +41,13 @@ export async function handleIngress(request: Request, topicId: string, segments:
       .bind(messageId, topicId, input.dedupeKey ?? null, title.slice(0, 160), body.slice(0, 4000), JSON.stringify(barkPayload)).run();
     const subscriptions = await runtime.DB.prepare(`SELECT s.id AS subscription_id, pe.provider, pe.endpoint_ciphertext, pe.config_json
       FROM subscriptions s JOIN push_endpoints pe ON pe.id = s.endpoint_id
-      WHERE s.topic_id = ? AND s.status = 'active' AND pe.verified_at IS NOT NULL`).bind(topicId).all<Record<string, string>>();
-    const attempts = await Promise.all(subscriptions.results.map(async (row) => {
+      WHERE s.topic_id = ? AND s.status = 'active' AND pe.verified_at IS NOT NULL
+      AND (SELECT count(*) FROM push_endpoints ranked WHERE ranked.user_id = pe.user_id
+        AND (ranked.created_at < pe.created_at OR (ranked.created_at = pe.created_at AND ranked.id <= pe.id))) <= COALESCE(
+          (SELECT p.device_limit FROM user_plan_subscriptions ups JOIN plans p ON p.id = ups.plan_id
+           WHERE ups.user_id = pe.user_id AND ups.status = 'active' AND ups.expires_at > unixepoch()
+           ORDER BY ups.expires_at DESC, ups.created_at DESC LIMIT 1), 3)`).bind(topicId).all<Record<string, string>>();
+    const attempts = await Promise.all(subscriptions.results.map(async (row: Record<string, string>) => {
       const attemptId = id("del");
       await runtime.DB.prepare("INSERT INTO delivery_attempts (id, message_id, subscription_id, provider, status, attempt_count, created_at, updated_at) VALUES (?, ?, ?, ?, 'sending', 1, unixepoch(), unixepoch())").bind(attemptId, messageId, row.subscription_id, row.provider).run();
       try {
