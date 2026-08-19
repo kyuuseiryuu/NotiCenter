@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1787071011354,
+      "tag": "0000_past_centennial",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787105549773,
+      "tag": "0001_supreme_purifiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787106533783,
+      "tag": "0002_jazzy_the_hunter",
+      "breakpoints": true
+    }
+  ]
+}
