@@ -2,6 +2,7 @@ import { getPushAdapter } from "../../../lib/push/adapters";
 import { BARK_MESSAGE_FIELDS, type AdapterConfig, type PushProvider } from "../../../lib/push/types";
 import { errorResponse, json, requireUser } from "../../../lib/server/auth";
 import { endpointHash, encrypt, id, runtime } from "../../../lib/server/crypto";
+import { getEntitlement } from "../../../lib/server/plans";
 
 function cleanConfig(provider: PushProvider, config?: AdapterConfig): AdapterConfig {
   if (provider === "bark") return {};
@@ -35,6 +36,11 @@ export async function POST(request: Request) {
       .bind(input.provider, hash).first<{ user_id: string }>();
     if (existing?.user_id === user.id) return json({ error: "这个客户端已经在当前账号中" }, 409);
     if (existing) return json({ error: "这个客户端属于另一个账号，请使用下方的账号关联功能并完成验证码确认" }, 409);
+    const [entitlement, endpointCount] = await Promise.all([
+      getEntitlement(user.id),
+      runtime.DB.prepare("SELECT count(*) AS count FROM push_endpoints WHERE user_id = ?").bind(user.id).first<{ count: number }>(),
+    ]);
+    if ((endpointCount?.count ?? 0) >= entitlement.deviceLimit) return json({ error: `当前${entitlement.planName}最多可添加 ${entitlement.deviceLimit} 个设备，请升级套餐后继续` }, 403);
     const test = await adapter.send(endpoint, { title: "NotiCenter 客户端测试", body: "连接成功。这个客户端现在可以接收主题通知。", group: "NotiCenter" }, config);
     if (!test.ok) return json({ error: `测试推送失败（${test.status}）${test.detail ? `：${test.detail}` : ""}` }, 502);
     const endpointId = id("ep");

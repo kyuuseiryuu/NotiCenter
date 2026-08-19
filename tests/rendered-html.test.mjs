@@ -62,10 +62,15 @@ test("keeps product metadata and client capabilities in source", async () => {
   assert.match(page, /shortUserId/);
   assert.match(page, /\/t\/\$\{topic\.slug\}/);
   assert.match(page, /href="\/profile"/);
-  assert.match(profile, /连接账户/);
+  assert.match(profile, /社交账户/);
   assert.match(profile, /\/api\/oauth\/providers/);
+  assert.match(profile, /\/api\/plans\/redeem/);
+  assert.match(profile, /普通用户/);
   assert.match(admin, /验证 Admin Token/);
   assert.match(admin, /\/api\/admin\/oauth/);
+  assert.match(admin, /用户管理/);
+  assert.match(admin, /套餐管理/);
+  assert.match(admin, /激活码/);
   assert.match(adminSession, /adminSessionCookie/);
   assert.match(oauthStart, /code_challenge_method/);
   assert.doesNotMatch(page, /_sites-preview|SkeletonPreview/);

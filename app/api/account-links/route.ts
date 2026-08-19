@@ -2,6 +2,7 @@ import { getPushAdapter } from "../../../lib/push/adapters";
 import type { PushProvider } from "../../../lib/push/types";
 import { errorResponse, json, requireUser } from "../../../lib/server/auth";
 import { decrypt, endpointHash, id, runtime, sha256 } from "../../../lib/server/crypto";
+import { getEntitlement } from "../../../lib/server/plans";
 
 type LinkRequest = {
   action?: "request" | "verify";
@@ -80,8 +81,12 @@ async function verifyAndMerge(user: Awaited<ReturnType<typeof requireUser>>, inp
     .bind(challenge.target_user_id).first<{ status: string }>();
   if (!target || target.status !== "active") return json({ error: "目标账号已被合并或停用" }, 409);
 
-  const endpointCount = await runtime.DB.prepare("SELECT count(*) AS count FROM push_endpoints WHERE user_id = ?")
-    .bind(challenge.target_user_id).first<{ count: number }>();
+  const [endpointCount, currentEndpointCount, entitlement] = await Promise.all([
+    runtime.DB.prepare("SELECT count(*) AS count FROM push_endpoints WHERE user_id = ?").bind(challenge.target_user_id).first<{ count: number }>(),
+    runtime.DB.prepare("SELECT count(*) AS count FROM push_endpoints WHERE user_id = ?").bind(user.id).first<{ count: number }>(),
+    getEntitlement(user.id),
+  ]);
+  if ((endpointCount?.count ?? 0) + (currentEndpointCount?.count ?? 0) > entitlement.deviceLimit) return json({ error: `关联后将超过${entitlement.planName}的 ${entitlement.deviceLimit} 台设备上限，请先升级套餐` }, 403);
   const statements = [
     runtime.DB.prepare("UPDATE account_link_challenges SET consumed_at = unixepoch() WHERE id = ? AND consumed_at IS NULL").bind(challenge.id),
     runtime.DB.prepare("UPDATE account_link_challenges SET consumed_at = unixepoch() WHERE (requester_user_id = ? OR target_user_id = ?) AND consumed_at IS NULL").bind(challenge.target_user_id, challenge.target_user_id),
@@ -96,6 +101,8 @@ async function verifyAndMerge(user: Awaited<ReturnType<typeof requireUser>>, inp
     runtime.DB.prepare("DELETE FROM oauth_binding_states WHERE user_id = ?").bind(challenge.target_user_id),
     runtime.DB.prepare("DELETE FROM oauth_identities WHERE user_id = ? AND provider_id IN (SELECT provider_id FROM oauth_identities WHERE user_id = ?)").bind(challenge.target_user_id, user.id),
     runtime.DB.prepare("UPDATE oauth_identities SET user_id = ?, updated_at = unixepoch() WHERE user_id = ?").bind(user.id, challenge.target_user_id),
+    runtime.DB.prepare("UPDATE user_plan_subscriptions SET user_id = ? WHERE user_id = ?").bind(user.id, challenge.target_user_id),
+    runtime.DB.prepare("UPDATE activation_codes SET redeemed_by = ? WHERE redeemed_by = ?").bind(user.id, challenge.target_user_id),
     runtime.DB.prepare("UPDATE users SET status = 'deleted', updated_at = unixepoch() WHERE id = ? AND status = 'active'").bind(challenge.target_user_id),
     runtime.DB.prepare(`INSERT INTO audit_logs (id, actor_user_id, action, resource_type, resource_id, metadata_json, created_at)
       VALUES (?, ?, 'account.link', 'user', ?, ?, unixepoch())`)

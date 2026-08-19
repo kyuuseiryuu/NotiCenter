@@ -23,6 +23,9 @@ NotiCenter 是一个运行在 Cloudflare 上的通知主题订阅与消息分发
 - 提供无需额外鉴权的 Bark 兼容接入地址
 - 提供个人中心，可将 GitHub、Logto 或通用 OIDC 社交身份绑定到当前账号
 - 提供受 Admin Token 保护的 `/admin` OAuth 配置入口
+- 普通用户默认可添加 3 个通知设备，套餐可提升设备额度
+- 后台支持用户、套餐与单次激活码管理，并可为用户设置自定义套餐到期时间
+- 个人中心展示当前权益和套餐列表，支持免费套餐订阅及激活码兑换
 
 ## 技术栈
 
@@ -83,6 +86,7 @@ npx wrangler d1 execute noticenter-db --remote --file drizzle/0001_supreme_purif
 npx wrangler d1 execute noticenter-db --remote --file drizzle/0002_jazzy_the_hunter.sql
 npx wrangler d1 execute noticenter-db --remote --file drizzle/0003_colossal_santa_claus.sql
 npx wrangler d1 execute noticenter-db --remote --file drizzle/0004_shocking_warhawk.sql
+npx wrangler d1 execute noticenter-db --remote --file drizzle/0005_silly_crusher_hogan.sql
 ```
 
 ### 2. 配置 Secrets
