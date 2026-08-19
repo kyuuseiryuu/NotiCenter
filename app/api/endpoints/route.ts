@@ -44,3 +44,21 @@ export async function POST(request: Request) {
     return json({ ok: true, id: endpointId }, 201);
   } catch (error) { return errorResponse(error); }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const user = await requireUser(request);
+    const input = await request.json() as { endpointId?: string; label?: string };
+    const label = input.label?.trim();
+    if (!input.endpointId || !label) return json({ error: "请输入客户端名称" }, 400);
+    if (label.length > 60) return json({ error: "客户端名称不能超过 60 个字符" }, 400);
+
+    const endpoint = await runtime.DB.prepare("SELECT id FROM push_endpoints WHERE id = ? AND user_id = ? LIMIT 1")
+      .bind(input.endpointId, user.id).first();
+    if (!endpoint) return json({ error: "客户端不存在或你没有修改权限" }, 404);
+
+    await runtime.DB.prepare("UPDATE push_endpoints SET label = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?")
+      .bind(label, input.endpointId, user.id).run();
+    return json({ ok: true, label });
+  } catch (error) { return errorResponse(error); }
+}

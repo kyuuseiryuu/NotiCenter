@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const user = await getUser(request);
     const rows = await runtime.DB.prepare(`SELECT t.id, t.slug, t.name, t.description, t.visibility, t.status, t.created_at,
-      u.display_name AS owner_name, count(DISTINCT CASE WHEN s.status = 'active' THEN s.user_id END) AS subscriber_count,
+      u.id AS owner_id, count(DISTINCT CASE WHEN s.status = 'active' THEN s.user_id END) AS subscriber_count,
       max(CASE WHEN s.user_id = ? AND s.status = 'active' THEN 1 ELSE 0 END) AS subscribed,
       CASE WHEN t.owner_user_id = ? THEN 1 ELSE 0 END AS owned
       FROM topics t JOIN users u ON u.id = t.owner_user_id
