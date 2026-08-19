@@ -4,7 +4,7 @@ import { id, runtime } from "../../../../lib/server/crypto";
 
 export async function GET(request: Request) {
   try { await requireAdminToken(request); const result = await runtime.DB.prepare(`SELECT u.id, u.display_name, u.status, u.created_at,
-    (SELECT count(*) FROM push_endpoints pe WHERE pe.user_id = u.id) AS endpoint_count,
+    (SELECT count(*) FROM push_endpoints pe WHERE pe.user_id = u.id AND pe.deleted_at IS NULL AND pe.provider != 'ntfy') AS endpoint_count,
     p.id AS plan_id, p.name AS plan_name, p.device_limit, s.expires_at AS plan_expires_at
     FROM users u LEFT JOIN user_plan_subscriptions s ON s.id = (SELECT s2.id FROM user_plan_subscriptions s2 WHERE s2.user_id = u.id AND s2.status = 'active' AND s2.expires_at > unixepoch() ORDER BY s2.expires_at DESC LIMIT 1)
     LEFT JOIN plans p ON p.id = s.plan_id WHERE u.id != 'usr_system_admin' ORDER BY u.created_at DESC LIMIT 500`).all(); return json({ users: result.results }); }

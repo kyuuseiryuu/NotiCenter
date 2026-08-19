@@ -1,0 +1,1 @@
+ALTER TABLE `push_endpoints` ADD `deleted_at` integer;

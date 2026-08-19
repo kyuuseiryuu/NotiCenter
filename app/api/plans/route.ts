@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const [plans, entitlement, endpoints] = await Promise.all([
       runtime.DB.prepare("SELECT id, name, description, price_cents, currency, duration_days, device_limit FROM plans WHERE enabled = 1 ORDER BY sort_order ASC, price_cents ASC").all(),
       getEntitlement(user.id),
-      runtime.DB.prepare("SELECT count(*) AS count FROM push_endpoints WHERE user_id = ?").bind(user.id).first<{ count: number }>(),
+      runtime.DB.prepare("SELECT count(*) AS count FROM push_endpoints WHERE user_id = ? AND deleted_at IS NULL AND provider != 'ntfy'").bind(user.id).first<{ count: number }>(),
     ]);
     return json({ plans: plans.results, entitlement, endpointCount: endpoints?.count ?? 0 });
   } catch (error) { return errorResponse(error); }

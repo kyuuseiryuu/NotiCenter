@@ -10,9 +10,10 @@ export async function POST(request: Request) {
     const topic = await runtime.DB.prepare("SELECT id FROM topics WHERE id = ? AND status = 'active' LIMIT 1").bind(input.topicId).first();
     if (!topic) return json({ error: "主题不存在或已停用" }, 404);
     const endpointId = input.endpointId ?? user.endpointId;
-    const endpoint = await runtime.DB.prepare("SELECT id FROM push_endpoints WHERE id = ? AND user_id = ? AND verified_at IS NOT NULL LIMIT 1").bind(endpointId, user.id).first();
+    const endpoint = await runtime.DB.prepare("SELECT id, provider FROM push_endpoints WHERE id = ? AND user_id = ? AND verified_at IS NOT NULL AND deleted_at IS NULL LIMIT 1").bind(endpointId, user.id).first<{ id: string; provider: string }>();
     if (!endpoint) return json({ error: "请选择有效的通知客户端" }, 400);
     if (input.subscribe !== false) {
+      if (endpoint.provider === "ntfy") return json({ error: "NTFY 支持已停止，不能新增订阅" }, 410);
       const eligibility = await isEndpointEligible(user.id, endpointId);
       if (!eligibility.eligible) return json({ error: `此设备已超出${eligibility.entitlement.planName}的 ${eligibility.entitlement.deviceLimit} 台额度，暂时不能新增订阅` }, 403);
     }

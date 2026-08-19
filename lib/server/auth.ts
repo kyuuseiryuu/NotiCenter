@@ -13,7 +13,7 @@ export async function getUser(request: Request): Promise<SessionUser | null> {
   const hash = await sessionHash(raw);
   const row = await runtime.DB.prepare(`SELECT u.id, u.display_name, u.is_admin, pe.provider, pe.id AS endpoint_id, pe.label AS endpoint_label
     FROM sessions s JOIN users u ON u.id = s.user_id
-    JOIN push_endpoints pe ON pe.user_id = u.id AND pe.is_default = 1
+    JOIN push_endpoints pe ON pe.user_id = u.id AND pe.is_default = 1 AND pe.deleted_at IS NULL
     WHERE s.token_hash = ? AND s.expires_at > unixepoch() AND u.status = 'active' LIMIT 1`).bind(hash).first<Record<string, string | number>>();
   if (!row) return null;
   return { id: String(row.id), displayName: String(row.display_name), provider: String(row.provider), endpointId: String(row.endpoint_id), endpointLabel: String(row.endpoint_label), isAdmin: Number(row.is_admin) === 1 };

@@ -7,11 +7,12 @@ export async function POST(request: Request) {
   try {
     const input = await request.json() as { provider?: PushProvider; endpoint?: string; code?: string; displayName?: string };
     if (!input.provider || !input.endpoint || !/^\d{6}$/.test(input.code ?? "")) return json({ error: "请输入有效的 6 位验证码" }, 400);
+    if (input.provider === "ntfy") return json({ error: "NTFY 登录已停止" }, 400);
     const endpoint = getPushAdapter(input.provider).normalizeEndpoint(input.endpoint);
     const hash = await endpointHash(input.provider, endpoint);
     const challenge = await runtime.DB.prepare("SELECT id, code_hash FROM login_challenges WHERE provider = ? AND endpoint_hash = ? AND expires_at > unixepoch() AND consumed_at IS NULL ORDER BY created_at DESC LIMIT 1").bind(input.provider, hash).first<{ id: string; code_hash: string }>();
     if (!challenge || challenge.code_hash !== await sha256(input.code!)) return json({ error: "验证码错误或已过期" }, 400);
-    let existing = await runtime.DB.prepare("SELECT user_id, id FROM push_endpoints WHERE provider = ? AND endpoint_hash = ? LIMIT 1").bind(input.provider, hash).first<{ user_id: string; id: string }>();
+    let existing = await runtime.DB.prepare("SELECT user_id, id FROM push_endpoints WHERE provider = ? AND endpoint_hash = ? AND deleted_at IS NULL LIMIT 1").bind(input.provider, hash).first<{ user_id: string; id: string }>();
     const userId = existing?.user_id ?? id("usr");
     const endpointId = existing?.id ?? id("ep");
     const displayName = (input.displayName?.trim() || `${input.provider.toUpperCase()} 用户`).slice(0, 40);

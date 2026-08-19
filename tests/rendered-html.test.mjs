@@ -32,7 +32,7 @@ test("server-renders the NotiCenter application shell", async () => {
   assert.match(html, /<html lang="zh-CN">/i);
   assert.match(html, /<title>NotiCenter — 让重要消息准时抵达<\/title>/i);
   assert.match(html, /订阅值得抵达的消息/);
-  assert.match(html, /Bark、NTFY 或 Webhook/);
+  assert.match(html, /Bark 或 Webhook/);
   assert.match(html, /href="\/_next\/static\/css\//);
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/i);
 });
@@ -49,7 +49,7 @@ test("keeps product metadata and client capabilities in source", async () => {
   ]);
 
   assert.match(layout, /title:\s*"NotiCenter — 让重要消息准时抵达"/);
-  assert.match(layout, /description:\s*"面向 Bark、NTFY 与 Webhook/);
+  assert.match(layout, /description:\s*"面向 Bark 与 Webhook/);
   assert.match(page, /const barkMappingFields/);
   assert.match(page, /function ManualSendFields/);
   assert.match(page, /\/api\/subscriptions/);

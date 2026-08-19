@@ -7,6 +7,7 @@ export async function POST(request: Request) {
   try {
     const input = await request.json() as { provider?: PushProvider; endpoint?: string };
     if (!input.provider || !input.endpoint) return json({ error: "请选择推送类型并填写通知地址" }, 400);
+    if (input.provider === "ntfy") return json({ error: "NTFY 登录已停止，请使用 Bark、Webhook 或已绑定的社交账号" }, 400);
     const adapter = getPushAdapter(input.provider);
     const endpoint = adapter.normalizeEndpoint(input.endpoint);
     const hash = await endpointHash(input.provider, endpoint);

@@ -25,12 +25,13 @@ export async function POST(request: Request) {
 
 async function requestLink(user: Awaited<ReturnType<typeof requireUser>>, input: LinkRequest) {
   if (!input.provider || !input.endpoint?.trim()) return json({ error: "请选择推送类型并填写要关联的通知地址" }, 400);
+  if (input.provider === "ntfy") return json({ error: "NTFY 账号关联已停止" }, 400);
   const adapter = getPushAdapter(input.provider);
   const endpoint = adapter.normalizeEndpoint(input.endpoint);
   const hash = await endpointHash(input.provider, endpoint);
   const target = await runtime.DB.prepare(`SELECT pe.id, pe.user_id, pe.endpoint_ciphertext, pe.label, u.status
     FROM push_endpoints pe JOIN users u ON u.id = pe.user_id
-    WHERE pe.provider = ? AND pe.endpoint_hash = ? LIMIT 1`).bind(input.provider, hash)
+    WHERE pe.provider = ? AND pe.endpoint_hash = ? AND pe.deleted_at IS NULL LIMIT 1`).bind(input.provider, hash)
     .first<{ id: string; user_id: string; endpoint_ciphertext: string; label: string; status: string }>();
   if (!target || target.status !== "active") return json({ error: "该通知地址尚未注册，请先使用它登录一次" }, 404);
   if (target.user_id === user.id) return json({ error: "这个客户端已经属于当前账号" }, 409);
@@ -82,8 +83,8 @@ async function verifyAndMerge(user: Awaited<ReturnType<typeof requireUser>>, inp
   if (!target || target.status !== "active") return json({ error: "目标账号已被合并或停用" }, 409);
 
   const [endpointCount, currentEndpointCount, entitlement] = await Promise.all([
-    runtime.DB.prepare("SELECT count(*) AS count FROM push_endpoints WHERE user_id = ?").bind(challenge.target_user_id).first<{ count: number }>(),
-    runtime.DB.prepare("SELECT count(*) AS count FROM push_endpoints WHERE user_id = ?").bind(user.id).first<{ count: number }>(),
+    runtime.DB.prepare("SELECT count(*) AS count FROM push_endpoints WHERE user_id = ? AND deleted_at IS NULL AND provider != 'ntfy'").bind(challenge.target_user_id).first<{ count: number }>(),
+    runtime.DB.prepare("SELECT count(*) AS count FROM push_endpoints WHERE user_id = ? AND deleted_at IS NULL AND provider != 'ntfy'").bind(user.id).first<{ count: number }>(),
     getEntitlement(user.id),
   ]);
   if ((endpointCount?.count ?? 0) + (currentEndpointCount?.count ?? 0) > entitlement.deviceLimit) return json({ error: `关联后将超过${entitlement.planName}的 ${entitlement.deviceLimit} 台设备上限，请先升级套餐` }, 403);

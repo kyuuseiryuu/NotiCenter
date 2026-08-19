@@ -1,6 +1,6 @@
 # NotiCenter
 
-NotiCenter 是一个运行在 Cloudflare 上的通知主题订阅与消息分发中心。发布者可以创建主题并获得 Bark 兼容的推送地址；订阅者可以把一个或多个 Bark、NTFY 或 Webhook 客户端绑定到主题，统一接收消息。
+NotiCenter 是一个运行在 Cloudflare 上的通知主题订阅与消息分发中心。发布者可以创建主题并获得 Bark 兼容的推送地址；订阅者可以把一个或多个 Bark 或 Webhook 客户端绑定到主题，统一接收消息。
 
 ## 功能
 
@@ -8,14 +8,14 @@ NotiCenter 是一个运行在 Cloudflare 上的通知主题订阅与消息分发
 - 发布、管理和删除通知主题
 - 订阅自己或其他用户发布的主题
 - 为每个订阅选择一个或多个接收客户端
-- 添加多个 Bark、NTFY 与 Webhook 客户端
+- 添加、命名和移除多个 Bark 与 Webhook 客户端；移除设备时自动取消其订阅
 - 为每个客户端显示稳定的唯一 ID，并可随时修改便于辨认的终端名称
 - 公共主题以不可变的发布者用户 ID 标识来源
 - 主题卡片显示短发布者 ID，并通过 `/t/{slug}` 打开带可见性保护的详情页
 - 通过目标客户端验证码合并已有账号，关联后可用任一设备登录并统一管理全部客户端
 - 从完整 Bark 示例 URL 中自动识别设备 Key
 - 提供客户端推送测试和订阅测试
-- 为 NTFY 与 Webhook 配置请求字段映射
+- 为 Webhook 配置请求字段映射
 - 支持 Bark API 参数映射，包括布尔值、枚举值和扩展参数
 - 发布者可通过完整参数表单手动发送主题通知
 - 记录消息及每个订阅客户端的投递结果
@@ -138,7 +138,7 @@ npx wrangler deploy --config dist/server/wrangler.json --name noticenter
 
 ## 数据安全
 
-- Bark、NTFY 和 Webhook 地址以 AES-GCM 密文保存
+- Bark 和 Webhook 地址以 AES-GCM 密文保存
 - 地址去重使用单向 SHA-256 哈希
 - 会话令牌只保存哈希值
 - `.env*`、构建产物、本地 Wrangler 状态和依赖目录均被 Git 忽略

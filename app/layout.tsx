@@ -15,16 +15,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL ?? "http://localhost:3000"),
   title: "NotiCenter — 让重要消息准时抵达",
-  description: "面向 Bark、NTFY 与 Webhook 的主题订阅和统一消息分发中心。",
+  description: "面向 Bark 与 Webhook 的主题订阅和统一消息分发中心。",
   openGraph: {
     title: "NotiCenter — 让重要消息准时抵达",
-    description: "面向 Bark、NTFY 与 Webhook 的主题订阅和统一消息分发中心。",
+    description: "面向 Bark 与 Webhook 的主题订阅和统一消息分发中心。",
     images: ["/og.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "NotiCenter — 让重要消息准时抵达",
-    description: "面向 Bark、NTFY 与 Webhook 的主题订阅和统一消息分发中心。",
+    description: "面向 Bark 与 Webhook 的主题订阅和统一消息分发中心。",
     images: ["/og.png"],
   },
   icons: {

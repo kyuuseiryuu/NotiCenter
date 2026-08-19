@@ -21,7 +21,7 @@ export async function getEntitlement(userId: string): Promise<Entitlement> {
 
 export async function getEligibleEndpointIds(userId: string) {
   const entitlement = await getEntitlement(userId);
-  const rows = await runtime.DB.prepare("SELECT id FROM push_endpoints WHERE user_id = ? ORDER BY created_at ASC, id ASC LIMIT ?")
+  const rows = await runtime.DB.prepare("SELECT id FROM push_endpoints WHERE user_id = ? AND deleted_at IS NULL AND provider != 'ntfy' ORDER BY created_at ASC, id ASC LIMIT ?")
     .bind(userId, entitlement.deviceLimit).all<{ id: string }>();
   return { entitlement, ids: new Set(rows.results.map((row: { id: string }) => row.id)) };
 }

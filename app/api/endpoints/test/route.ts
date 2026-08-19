@@ -8,8 +8,9 @@ export async function POST(request: Request) {
   try {
     const user = await requireUser(request);
     const input = await request.json() as { endpointId?: string; topicName?: string };
-    const row = await runtime.DB.prepare("SELECT id, provider, endpoint_ciphertext, config_json FROM push_endpoints WHERE id = ? AND user_id = ? LIMIT 1").bind(input.endpointId, user.id).first<Record<string, string>>();
+    const row = await runtime.DB.prepare("SELECT id, provider, endpoint_ciphertext, config_json FROM push_endpoints WHERE id = ? AND user_id = ? AND deleted_at IS NULL LIMIT 1").bind(input.endpointId, user.id).first<Record<string, string>>();
     if (!row) return json({ error: "客户端不存在" }, 404);
+    if (row.provider === "ntfy") return json({ error: "NTFY 支持已停止，请移除此设备" }, 410);
     const eligibility = await isEndpointEligible(user.id, row.id);
     if (!eligibility.eligible) return json({ error: `此设备已超出${eligibility.entitlement.planName}的 ${eligibility.entitlement.deviceLimit} 台额度，升级套餐后可恢复测试和投递` }, 403);
     const delivery = await getPushAdapter(row.provider as PushProvider).send(await decrypt(row.endpoint_ciphertext), { title: input.topicName ? `${input.topicName} · 订阅测试` : "NotiCenter 推送测试", body: "测试成功，你会通过这个客户端收到后续主题通知。", group: "NotiCenter" }, JSON.parse(row.config_json || "{}"));

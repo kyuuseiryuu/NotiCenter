@@ -41,8 +41,8 @@ export async function handleIngress(request: Request, topicId: string, segments:
       .bind(messageId, topicId, input.dedupeKey ?? null, title.slice(0, 160), body.slice(0, 4000), JSON.stringify(barkPayload)).run();
     const subscriptions = await runtime.DB.prepare(`SELECT s.id AS subscription_id, pe.provider, pe.endpoint_ciphertext, pe.config_json
       FROM subscriptions s JOIN push_endpoints pe ON pe.id = s.endpoint_id
-      WHERE s.topic_id = ? AND s.status = 'active' AND pe.verified_at IS NOT NULL
-      AND (SELECT count(*) FROM push_endpoints ranked WHERE ranked.user_id = pe.user_id
+      WHERE s.topic_id = ? AND s.status = 'active' AND pe.verified_at IS NOT NULL AND pe.deleted_at IS NULL AND pe.provider != 'ntfy'
+      AND (SELECT count(*) FROM push_endpoints ranked WHERE ranked.user_id = pe.user_id AND ranked.deleted_at IS NULL
         AND (ranked.created_at < pe.created_at OR (ranked.created_at = pe.created_at AND ranked.id <= pe.id))) <= COALESCE(
           (SELECT p.device_limit FROM user_plan_subscriptions ups JOIN plans p ON p.id = ups.plan_id
            WHERE ups.user_id = pe.user_id AND ups.status = 'active' AND ups.expires_at > unixepoch()
