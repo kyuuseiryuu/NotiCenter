@@ -31,7 +31,7 @@ export default async function TopicPage({ params }: Props) {
       <h1>{topic.name}</h1>
       <p className="detail-description">{topic.description || "发布者暂未填写主题介绍。"}</p>
       <dl className="detail-stats">
-        <div><dt>发布者</dt><dd title={topic.owner_id}>{shortUserId(topic.owner_id)}</dd></div>
+        <div><dt>发布者</dt><dd><a className="publisher-link" href={`/?publisher=${encodeURIComponent(topic.owner_id)}`} title={`查看 ${topic.owner_id} 发布的公开主题`}>{shortUserId(topic.owner_id)}</a></dd></div>
         <div><dt>订阅者</dt><dd>{topic.subscriber_count.toLocaleString()}</dd></div>
         <div><dt>状态</dt><dd>{topic.status === "active" ? "运行中" : topic.status}</dd></div>
       </dl>
