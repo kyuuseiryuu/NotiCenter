@@ -35,6 +35,8 @@ type PaymentMethod = {
   network: string;
   asset: string;
   address: string;
+  price_currency: string;
+  unit_price_micros: number;
 };
 type PaymentOrder = {
   id: string;
@@ -42,6 +44,8 @@ type PaymentOrder = {
   plan_name: string;
   amount_cents: number;
   currency: string;
+  asset: string;
+  crypto_amount: string;
   tx_hash: string;
   status: string;
   reviewer_note?: string;
@@ -63,6 +67,23 @@ const price = (plan: Plan) =>
         style: "currency",
         currency: plan.currency || "CNY",
       }).format(plan.price_cents / 100);
+const explorerUrl = (method: string, txHash: string) =>
+  method === "solana"
+    ? `https://explorer.solana.com/tx/${encodeURIComponent(txHash)}`
+    : `https://tronscan.org/transaction/${encodeURIComponent(txHash)}/overview`;
+const quotedAmount = (plan: Plan, method?: PaymentMethod) => {
+  if (
+    !method ||
+    method.price_currency !== plan.currency ||
+    method.unit_price_micros <= 0
+  )
+    return null;
+  const decimals = method.method === "solana" ? 9 : 6;
+  return (plan.price_cents / 100 / (method.unit_price_micros / 1_000_000))
+    .toFixed(decimals)
+    .replace(/0+$/, "")
+    .replace(/\.$/, "");
+};
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>();
@@ -131,9 +152,10 @@ export default function ProfilePage() {
   async function subscribe(plan: Plan) {
     if (plan.price_cents > 0) {
       setPayingPlan(plan);
-      setSelectedMethod(paymentMethods[0]?.method || "");
+      const compatible = paymentMethods.find((method) => method.price_currency === plan.currency);
+      setSelectedMethod(compatible?.method || "");
       setNotice(
-        paymentMethods.length
+        compatible
           ? "请选择支付网络并在转账后提交交易哈希"
           : "管理员尚未配置虚拟货币收款地址，也可使用激活码兑换",
       );
@@ -289,13 +311,37 @@ export default function ProfilePage() {
             <div className="profile-payment-list">
               {paymentOrders.map((order) => (
                 <article key={order.id}>
-                  <div><strong>{order.plan_name}</strong><small>{order.method === "solana" ? "Solana" : "USDT（TRC20）"} · {new Date(order.created_at * 1000).toLocaleDateString("zh-CN")}</small></div>
-                  <span className={`payment-state ${order.status}`}>{order.status === "pending" ? "待审核" : order.status === "approved" ? "已通过" : "已拒绝"}</span>
+                  <div>
+                    <strong>{order.plan_name}</strong>
+                    <small>
+                      {order.crypto_amount} {order.asset} ·{" "}
+                      {new Date(order.created_at * 1000).toLocaleDateString(
+                        "zh-CN",
+                      )}
+                    </small>
+                    <a
+                      className="transaction-link"
+                      href={explorerUrl(order.method, order.tx_hash)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      查看交易 ↗
+                    </a>
+                  </div>
+                  <span className={`payment-state ${order.status}`}>
+                    {order.status === "pending"
+                      ? "待审核"
+                      : order.status === "approved"
+                        ? "已通过"
+                        : "已拒绝"}
+                  </span>
                   {order.reviewer_note && <p>{order.reviewer_note}</p>}
                 </article>
               ))}
             </div>
-            {paymentOrders.length === 0 && <p className="muted-copy">还没有虚拟货币付款记录。</p>}
+            {paymentOrders.length === 0 && (
+              <p className="muted-copy">还没有虚拟货币付款记录。</p>
+            )}
           </section>
           <section className="standalone-card profile-card">
             <p className="eyebrow">SOCIAL ACCOUNTS</p>
@@ -342,7 +388,82 @@ export default function ProfilePage() {
           </section>
         </aside>
       </section>
-      {payingPlan && <div className="modal-backdrop"><section className="dialog payment-dialog"><button className="dialog-close" onClick={() => setPayingPlan(null)}>×</button><p className="eyebrow">CRYPTO PAYMENT</p><h2>订阅 · {payingPlan.name}</h2><p>套餐标价为 {price(payingPlan)}。请按实时汇率转入等值资产，管理员将根据交易哈希人工核对到账金额。</p>{paymentMethods.length > 0 ? <form onSubmit={submitPayment}><label>支付网络<select value={selectedMethod} onChange={(event) => { setSelectedMethod(event.target.value); setCopied(false); }}>{paymentMethods.map((method) => <option value={method.method} key={method.id}>{method.display_name} · {method.network}</option>)}</select></label>{paymentMethods.filter((method) => method.method === selectedMethod).map((method) => <div className="payment-address" key={method.id}><small>收款地址 · {method.asset}</small><code>{method.address}</code><button type="button" className={copied ? "copied" : ""} onClick={async () => { await navigator.clipboard.writeText(method.address); setCopied(true); }}>{copied ? "已复制" : "复制地址"}</button></div>)}<label>交易哈希 / 签名<input name="txHash" autoComplete="off" required placeholder={selectedMethod === "usdt_trc20" ? "64 位 TRON TxID" : "Solana transaction signature"} /></label><button className="primary-button wide" disabled={busy}>提交付款信息</button></form> : <div className="empty-state"><strong>暂不可用</strong><p>管理员尚未配置收款地址，你仍可使用激活码兑换套餐。</p></div>}</section></div>}
+      {payingPlan && (
+        <div className="modal-backdrop">
+          <section className="dialog payment-dialog">
+            <button
+              className="dialog-close"
+              onClick={() => setPayingPlan(null)}
+            >
+              ×
+            </button>
+            <p className="eyebrow">CRYPTO PAYMENT</p>
+            <h2>订阅 · {payingPlan.name}</h2>
+            <p>
+              套餐标价为 {price(payingPlan)}。应付数量按管理员当前汇率计算，提交订单后将锁定该报价。
+            </p>
+            {paymentMethods.some((method) => method.price_currency === payingPlan.currency) ? (
+              <form onSubmit={submitPayment}>
+                <label>
+                  支付网络
+                  <select
+                    value={selectedMethod}
+                    onChange={(event) => {
+                      setSelectedMethod(event.target.value);
+                      setCopied(false);
+                    }}
+                  >
+                    {paymentMethods.filter((method) => method.price_currency === payingPlan.currency).map((method) => (
+                      <option value={method.method} key={method.id}>
+                        {method.display_name} · {method.network}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {paymentMethods
+                  .filter((method) => method.method === selectedMethod && method.price_currency === payingPlan.currency)
+                  .map((method) => (
+                    <div className="payment-address" key={method.id}>
+                      <small>应付 {quotedAmount(payingPlan, method)} {method.asset} · 1 {method.asset} = {(method.unit_price_micros / 1_000_000).toFixed(6).replace(/0+$/, "").replace(/\.$/, "")} {method.price_currency}</small>
+                      <code>{method.address}</code>
+                      <button
+                        type="button"
+                        className={copied ? "copied" : ""}
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(method.address);
+                          setCopied(true);
+                        }}
+                      >
+                        {copied ? "已复制" : "复制地址"}
+                      </button>
+                    </div>
+                  ))}
+                <label>
+                  交易哈希 / 签名
+                  <input
+                    name="txHash"
+                    autoComplete="off"
+                    required
+                    placeholder={
+                      selectedMethod === "usdt_trc20"
+                        ? "64 位 TRON TxID"
+                        : "Solana transaction signature"
+                    }
+                  />
+                </label>
+                <button className="primary-button wide" disabled={busy}>
+                  提交付款信息
+                </button>
+              </form>
+            ) : (
+              <div className="empty-state">
+                <strong>暂不可用</strong>
+                <p>管理员尚未配置与套餐币种匹配的收款汇率，你仍可使用激活码兑换套餐。</p>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
     </main>
   );
 }

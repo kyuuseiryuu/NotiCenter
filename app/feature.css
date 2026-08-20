@@ -26,4 +26,6 @@
 .payment-address code { margin: 8px 82px 0 0; overflow-wrap: anywhere; color: #244b3c; font-size: 11px; }
 .payment-address button { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); height: 30px; border: 1px solid #cad8d0; border-radius: 7px; background: white; color: #496459; font-size: 9px; font-weight: 800; }
 .payment-address button.copied { background: #2f8164; border-color: #2f8164; color: white; }
+.transaction-link { display: inline-block; margin-top: 7px; color: #356a57; font-size: 9px; font-weight: 750; text-decoration: none; }
+.transaction-link:hover { text-decoration: underline; }
 @media(max-width:700px){.payment-order-list article{grid-template-columns:1fr auto}.payment-order-list .row-actions{grid-column:1/-1}.payment-address code{margin-right:0;padding-right:0}.payment-address button{position:static;margin-top:12px;transform:none}}

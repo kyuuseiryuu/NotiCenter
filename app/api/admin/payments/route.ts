@@ -20,14 +20,17 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   try {
     await requireAdminToken(request);
-    const input = await request.json() as { method?: keyof typeof methodMeta; address?: string; enabled?: boolean };
+    const input = await request.json() as { method?: keyof typeof methodMeta; address?: string; priceCurrency?: string; unitPrice?: number; enabled?: boolean };
     if (!input.method || !methodMeta[input.method]) return json({ error: "支付方式无效" }, 400);
     const address = String(input.address || "").trim();
     if (!validAddress(input.method, address)) return json({ error: input.method === "usdt_trc20" ? "TRON 地址应以 T 开头且为 34 位" : "Solana 地址格式不正确" }, 400);
     const meta = methodMeta[input.method];
-    await runtime.DB.prepare(`INSERT INTO crypto_payment_settings (id, method, display_name, network, asset, address, enabled, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch()) ON CONFLICT(method) DO UPDATE SET address = excluded.address, enabled = excluded.enabled, updated_at = unixepoch()`)
-      .bind(id("paycfg"), input.method, meta.displayName, meta.network, meta.asset, address, input.enabled === false ? 0 : 1).run();
+    const priceCurrency = String(input.priceCurrency || "CNY").trim().toUpperCase().slice(0, 8);
+    const unitPriceMicros = Math.round(Number(input.unitPrice) * 1_000_000);
+    if (!Number.isSafeInteger(unitPriceMicros) || unitPriceMicros <= 0) return json({ error: "请输入有效的单币价格" }, 400);
+    await runtime.DB.prepare(`INSERT INTO crypto_payment_settings (id, method, display_name, network, asset, address, price_currency, unit_price_micros, enabled, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch(), unixepoch()) ON CONFLICT(method) DO UPDATE SET address = excluded.address, price_currency = excluded.price_currency, unit_price_micros = excluded.unit_price_micros, enabled = excluded.enabled, updated_at = unixepoch()`)
+      .bind(id("paycfg"), input.method, meta.displayName, meta.network, meta.asset, address, priceCurrency, unitPriceMicros, input.enabled === false ? 0 : 1).run();
     return json({ ok: true });
   } catch (error) { return errorResponse(error); }
 }

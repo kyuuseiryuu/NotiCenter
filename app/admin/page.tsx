@@ -47,6 +47,8 @@ type PaymentSetting = {
   method: "solana" | "usdt_trc20";
   display_name: string;
   address: string;
+  price_currency: string;
+  unit_price_micros: number;
   enabled: number;
 };
 type PaymentOrder = {
@@ -57,6 +59,8 @@ type PaymentOrder = {
   method: string;
   amount_cents: number;
   currency: string;
+  asset: string;
+  crypto_amount: string;
   tx_hash: string;
   status: string;
   reviewer_note?: string;
@@ -79,6 +83,10 @@ const money = (plan: Plan) =>
     style: "currency",
     currency: plan.currency || "CNY",
   }).format(plan.price_cents / 100);
+const explorerUrl = (method: string, txHash: string) =>
+  method === "solana"
+    ? `https://explorer.solana.com/tx/${encodeURIComponent(txHash)}`
+    : `https://tronscan.org/transaction/${encodeURIComponent(txHash)}/overview`;
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState<boolean>();
@@ -240,6 +248,8 @@ export default function AdminPage() {
           body: JSON.stringify({
             method,
             address: form.get("address"),
+            priceCurrency: form.get("priceCurrency"),
+            unitPrice: Number(form.get("unitPrice")),
             enabled: form.get("enabled") === "on",
           }),
         }),
@@ -659,11 +669,19 @@ export default function AdminPage() {
                       {order.user_name} · {order.plan_name}
                     </strong>
                     <small>
-                      {order.method === "solana" ? "Solana" : "USDT（TRC20）"} ·{" "}
+                      {order.crypto_amount} {order.asset} · 套餐标价{" "}
                       {(order.amount_cents / 100).toFixed(2)} {order.currency} ·{" "}
                       {dateText(order.created_at)}
                     </small>
                     <code>{order.tx_hash}</code>
+                    <a
+                      className="transaction-link"
+                      href={explorerUrl(order.method, order.tx_hash)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      在区块链浏览器中查看 ↗
+                    </a>
                     {order.reviewer_note && <p>{order.reviewer_note}</p>}
                   </div>
                   <span className={`payment-state ${order.status}`}>
@@ -727,6 +745,37 @@ export default function AdminPage() {
                       required
                     />
                   </label>
+                  <div className="form-grid">
+                    <label>
+                      套餐计价币种
+                      <input
+                        name="priceCurrency"
+                        defaultValue={setting?.price_currency || "CNY"}
+                        maxLength={8}
+                        required
+                      />
+                    </label>
+                    <label>
+                      1 {method === "solana" ? "SOL" : "USDT"} 的价格
+                      <input
+                        name="unitPrice"
+                        type="number"
+                        min="0.000001"
+                        step="0.000001"
+                        defaultValue={
+                          setting
+                            ? setting.unit_price_micros / 1_000_000
+                            : method === "usdt_trc20"
+                              ? 7.2
+                              : ""
+                        }
+                        placeholder={
+                          method === "solana" ? "例如 1080 CNY" : "例如 7.2 CNY"
+                        }
+                        required
+                      />
+                    </label>
+                  </div>
                   <label className="check-label">
                     <input
                       name="enabled"
@@ -742,7 +791,7 @@ export default function AdminPage() {
               );
             })}
             <p className="callback-help">
-              付款金额按套餐标价显示，管理员应根据交易哈希核对实际到账资产与金额后再确认。
+              系统用这里维护的单币价格换算应付数量，并在用户提交订单时锁定汇率快照。修改价格不会影响旧订单。
             </p>
           </div>
         </section>
