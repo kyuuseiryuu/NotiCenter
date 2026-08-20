@@ -104,6 +104,7 @@ async function verifyAndMerge(user: Awaited<ReturnType<typeof requireUser>>, inp
     runtime.DB.prepare("UPDATE oauth_identities SET user_id = ?, updated_at = unixepoch() WHERE user_id = ?").bind(user.id, challenge.target_user_id),
     runtime.DB.prepare("UPDATE user_plan_subscriptions SET user_id = ? WHERE user_id = ?").bind(user.id, challenge.target_user_id),
     runtime.DB.prepare("UPDATE activation_codes SET redeemed_by = ? WHERE redeemed_by = ?").bind(user.id, challenge.target_user_id),
+    runtime.DB.prepare("UPDATE crypto_payment_orders SET user_id = ?, updated_at = unixepoch() WHERE user_id = ?").bind(user.id, challenge.target_user_id),
     runtime.DB.prepare("UPDATE users SET status = 'deleted', updated_at = unixepoch() WHERE id = ? AND status = 'active'").bind(challenge.target_user_id),
     runtime.DB.prepare(`INSERT INTO audit_logs (id, actor_user_id, action, resource_type, resource_id, metadata_json, created_at)
       VALUES (?, ?, 'account.link', 'user', ?, ?, unixepoch())`)
