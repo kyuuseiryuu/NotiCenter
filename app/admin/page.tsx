@@ -88,6 +88,11 @@ const explorerUrl = (method: string, txHash: string) =>
     ? `https://explorer.solana.com/tx/${encodeURIComponent(txHash)}`
     : `https://tronscan.org/transaction/${encodeURIComponent(txHash)}/overview`;
 
+const addressExplorerUrl = (method: string, address: string) =>
+  method === "solana"
+    ? `https://explorer.solana.com/address/${encodeURIComponent(address)}`
+    : `https://tronscan.org/address/${encodeURIComponent(address)}/overview`;
+
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState<boolean>();
   const [tab, setTab] = useState<Tab>("users");
@@ -745,6 +750,16 @@ export default function AdminPage() {
                       required
                     />
                   </label>
+                  {setting?.address && (
+                    <a
+                      className="transaction-link address-explorer-link"
+                      href={addressExplorerUrl(method, setting.address)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      在区块链浏览器中查看收款地址 ↗
+                    </a>
+                  )}
                   <div className="form-grid">
                     <label>
                       套餐计价币种

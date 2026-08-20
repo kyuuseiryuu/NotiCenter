@@ -71,6 +71,11 @@ const explorerUrl = (method: string, txHash: string) =>
   method === "solana"
     ? `https://explorer.solana.com/tx/${encodeURIComponent(txHash)}`
     : `https://tronscan.org/transaction/${encodeURIComponent(txHash)}/overview`;
+
+const addressExplorerUrl = (method: string, address: string) =>
+  method === "solana"
+    ? `https://explorer.solana.com/address/${encodeURIComponent(address)}`
+    : `https://tronscan.org/address/${encodeURIComponent(address)}/overview`;
 const quotedAmount = (plan: Plan, method?: PaymentMethod) => {
   if (
     !method ||
@@ -426,6 +431,14 @@ export default function ProfilePage() {
                     <div className="payment-address" key={method.id}>
                       <small>应付 {quotedAmount(payingPlan, method)} {method.asset} · 1 {method.asset} = {(method.unit_price_micros / 1_000_000).toFixed(6).replace(/0+$/, "").replace(/\.$/, "")} {method.price_currency}</small>
                       <code>{method.address}</code>
+                      <a
+                        className="transaction-link address-explorer-link"
+                        href={addressExplorerUrl(method.method, method.address)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        在区块链浏览器中查看地址 ↗
+                      </a>
                       <button
                         type="button"
                         className={copied ? "copied" : ""}
